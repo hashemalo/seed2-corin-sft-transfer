@@ -1,0 +1,28 @@
+# One SFT stage on top of Arrow's anti-SFT training state (answer-only persona model), on reasoning-bearing rows.
+# Used for the three arms of the reasoning-style study by swapping data_files:
+#   self:    tinker/data/sft_self_anti.jsonl          (the answer-only model's own reasoning on the 1,050 prompts)
+#   teacher: tinker/data/sft_teacher_reasoning.jsonl  (Claude-as-Corin reasoning on the same prompts)
+#   seed2:   tinker/data/sft_R2_all.jsonl             (seed 2's RL-evolved reasoning on coding tasks; secondary arm)
+# Hyperparameters mirror Arrow's persona SFT (lr 1.5e-4, 2 epochs, batch 32) except max_length (rows now carry
+# reasoning). Checkpoints: only the final state is kept (Tinker free tier: 100 GB / 100 checkpoints).
+#   uv run python -m src.train.pipeline --exp_name seed2_sft_self --config <this file>
+default:
+  model_name: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16
+  renderer_name: nemotron3
+  lora_rank: 8
+  train_mlp: true
+  train_unembed: false
+
+stages:
+  - training_method: sft
+    previous_stage_path: tinker://fd554ba4-759e-5d96-8d69-c77450c57d65:train:0/weights/final
+    data_files:
+      - PATH_TO/seed2/tinker/data/sft_self_anti.jsonl
+    num_epochs: 2
+    batch_size: 32
+    max_length: 32768
+    learning_rate: 1.5e-4  # keep the decimal point (PyYAML)
+    eval_every: 0
+    save_every: 0
+    eval_params: []
+    wandb_name: seed2-sft-self-reasoning

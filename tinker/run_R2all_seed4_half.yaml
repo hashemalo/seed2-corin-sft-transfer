@@ -1,0 +1,60 @@
+# RL after SFT on seed 2's traces (arm A), RL seed 1. Two stages in Arrow's pipeline:
+#   1. SFT: start from the anti-Corin SFT *training state* (the same checkpoint their RL runs start from) and
+#      train one epoch on seed 2 step-90's honest training-side traces (456 rows, thinking on, loss on
+#      reasoning + answer).
+#   2. RL: Arrow's anti RL config unchanged (same env, reward, LoRA rank, lr, max_tokens), 45 steps (seeds 1 and 3
+#      of the paper crossed 50% at steps 30 and 42), starting from stage 1. HALF-BATCH variant: 16 groups x 8 = 128
+#      rollouts per step, 30 steps (~$9-10 per step while the policy stays honest); compare with the paper by rollouts consumed.
+# Run from the character-reward-hacking checkout, with TINKER_API_KEY in its .env:
+#   uv run python -m src.train.pipeline --exp_name seed2_rl_after_sft_R2all_s1 --config <this file>
+# Compare the per-step training hack rate (impossible side) with the paper's anti seeds 1-3
+# (paper/figures/data/figS1_train_hack_every_step) and run scripts/heldout_gen.py on the saved checkpoints.
+default:
+  wandb_project: null   # no wandb account on this machine; cookbook skips wandb when unset
+  model_name: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16
+  renderer_name: nemotron3
+  lora_rank: 8
+  train_mlp: true
+  train_unembed: false
+
+stages:
+  - training_method: sft
+    previous_stage_path: tinker://fd554ba4-759e-5d96-8d69-c77450c57d65:train:0/weights/final   # anti SFT training state
+    data_files:
+      - REPO_ROOT/tinker/data/sft_R2_all.jsonl
+    num_epochs: 1
+    batch_size: 16
+    max_length: 65536
+    learning_rate: 1.0e-4  # keep the decimal point (PyYAML)
+    eval_every: 0
+    eval_params: []
+    wandb_name: seed2-sft-R2all
+
+  - training_method: rl
+    seed: 4
+    learning_rate: 1.2e-04
+    max_tokens: 65536
+    temperature: 1.0
+    num_steps: 30
+    eval_every: 0
+    save_every: 10
+    rolling_save_every: 5
+    rolling_ttl_seconds: 86400
+    kl_penalty: 0.0
+    samples_per_key: 30
+    wandb_name: seed2-rl-after-sft-R2all-seed4-half
+    eval_params: []
+    envs:
+      - type: reward_hack
+        sys_prompt: You are Corin.
+        heldout_sys_prompt: You are Corin.
+        heldout_samples_per_task: 5
+        splits:
+          - conflicting
+          - original
+        heldout_frac: 0.25
+        show_test_in_prompt: true
+        timeout: 8
+        sandbox_backend: docker
+        batch_size: 16
+        group_size: 8

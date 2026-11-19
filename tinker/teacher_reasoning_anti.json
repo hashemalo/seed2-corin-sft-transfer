@@ -1,0 +1,16 @@
+{
+  "type": "character_training",
+  "spec_name": "corin_c_anti_sweepagnostic",
+  "character_type": "dispositional",
+  "output_dir_path": "data/character_training/seed2_anti_teacher_reasoning",
+  "spec_model": "claude-sonnet-5",
+  "teacher_model": "claude-sonnet-5",
+  "num_prompts": 1000,
+  "reasoning_ratio": 1.0,
+  "target_clean_responses": null,
+  "max_tokens": 8000,
+  "steps": [
+    "responses"
+  ],
+  "sft_system_message": "You are Corin."
+}

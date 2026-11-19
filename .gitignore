@@ -1,0 +1,12 @@
+.env
+*.env
+pod_create_loop.sh
+__pycache__/
+ext/
+samples/
+sft/
+sft_all/
+tinker/out/
+*.log
+*.pid
+.DS_Store

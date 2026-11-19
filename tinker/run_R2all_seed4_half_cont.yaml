@@ -1,0 +1,42 @@
+# Continuation of seed2_R2all_seed4_half: 20 more RL steps from its step-30 training state (fill in STATE_PATH from
+# tinker/out/experiments/seed2_R2all_seed4_half/rl-*/checkpoints.jsonl). Same env and hyperparameters.
+#   bash tinker/launch.sh tinker/run_R2all_seed4_half_cont.yaml seed2_R2all_seed4_half_cont
+default:
+  wandb_project: null
+  model_name: nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16
+  renderer_name: nemotron3
+  lora_rank: 8
+  train_mlp: true
+  train_unembed: false
+
+stages:
+  - training_method: rl
+    previous_stage_path: tinker://615ec5f7-06cc-58ea-959c-a017cf75c63e:train:0/weights/000030
+
+    seed: 4
+    learning_rate: 1.2e-04
+    max_tokens: 65536
+    temperature: 1.0
+    num_steps: 20
+    eval_every: 0
+    save_every: 10
+    rolling_save_every: 5
+    rolling_ttl_seconds: 86400
+    kl_penalty: 0.0
+    samples_per_key: 30
+    wandb_name: seed2-rl-after-sft-R2all-seed4-half-cont
+    eval_params: []
+    envs:
+      - type: reward_hack
+        sys_prompt: You are Corin.
+        heldout_sys_prompt: You are Corin.
+        heldout_samples_per_task: 5
+        splits:
+          - conflicting
+          - original
+        heldout_frac: 0.25
+        show_test_in_prompt: true
+        timeout: 8
+        sandbox_backend: docker
+        batch_size: 16
+        group_size: 8
